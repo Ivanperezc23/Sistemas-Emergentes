@@ -1,15 +1,18 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import os
 import yt_dlp
-import threading
+import asyncio
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-def start(update, context):
-    update.message.reply_text("🎧 ¡Hola! Envíame el nombre de una canción o artista y te enviaré el audio en MP3.")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🎧 ¡Hola! Envíame el nombre de una canción o artista y te enviaré el audio en MP3.")
 
 def download_mp3(query):
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
+        'cookiefile': 'cookies.txt',
         'outtmpl': 'audio.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
@@ -18,36 +21,40 @@ def download_mp3(query):
         }],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch1:{query}", download=True)
-        title = info['entries'][0]['title']
-        return 'audio.mp3', title
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"ytsearch1:{query}", download=True)
+            title = info['entries'][0]['title']
+            return 'audio.mp3', title
+    except Exception as e:
+        print("❌ Error en yt_dlp:", e)
+        return None, None
 
-def handle_message(update, context):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
-    update.message.reply_text(f"🔍 Buscando: {query}...")
+    await update.message.reply_text(f"🔍 Buscando: {query}...")
+
+    filename, title = download_mp3(query)
+    if not filename:
+        await update.message.reply_text("❌ No se pudo descargar el audio. Puede estar bloqueado por restricciones de YouTube.")
+        return
 
     try:
-        filename, title = download_mp3(query)
         with open(filename, 'rb') as f:
-            update.message.reply_audio(f, title=title)
+            await update.message.reply_audio(f, title=title)
         os.remove(filename)
     except Exception as e:
-        update.message.reply_text("❌ Hubo un error descargando el audio.")
+        await update.message.reply_text("❌ Error al enviar el audio.")
         print(e)
 
-def run_bot():
-    TOKEN = "8452976350:AAENIzUCMKfKnFh0ixvWtQFCp45nLe_Yf3Y"  # 🔁 ← Pega aquí tu token
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+async def main():
+    app = ApplicationBuilder().token("TU_TOKEN_AQUI").build()
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    updater.start_polling()
     print("🎵 Bot de música activo...")
-    updater.idle()
+    await app.run_polling()
 
-# Ejecutar en hilo separado para que no se congele Colab
-thread = threading.Thread(target=run_bot)
-thread.start()
+if __name__ == '__main__':
+    asyncio.run(main())
