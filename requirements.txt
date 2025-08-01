@@ -1,9 +1,2 @@
-▶️ Para ejecutar BFS:
-
-python rompecab8bfs.py rompecabeza1.txt
-
-
-
-▶️ Para ejecutar DFS:
-
-python rompecab8dfs.py rompecabeza1.txt
+python-telegram-bot==20.6
+yt-dlp
