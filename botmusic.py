@@ -1,49 +1,28 @@
+import asyncio
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, JobQueue
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, filters
 )
-import os
-from pytz import timezone
-import yt_dlp
 
+# Comando /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🎧 ¡Hola! Envíame el nombre de una canción o artista y te enviaré el audio en MP3.")
+    await update.message.reply_text("¡Hola! Soy tu bot musical.")
 
-def download_mp3(query):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'quiet': True,
-        'outtmpl': 'audio.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch1:{query}", download=True)
-        title = info['entries'][0]['title']
-        return 'audio.mp3', title
-
+# Mensajes comunes
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.message.text
-    await update.message.reply_text(f"🔍 Buscando: {query}...")
+    await update.message.reply_text("Recibí tu mensaje: " + update.message.text)
 
-    try:
-        filename, title = download_mp3(query)
-        with open(filename, 'rb') as f:
-            await update.message.reply_audio(f, title=title)
-        os.remove(filename)
-    except Exception as e:
-        await update.message.reply_text("❌ Error descargando el audio.")
-        print("Error:", e)
-
+# Función principal
 async def main():
-    app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+    app = ApplicationBuilder().token("TU_TOKEN_AQUI").build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("🎵 Bot activo...")
+    print("Bot iniciado...")
     await app.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
