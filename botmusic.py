@@ -21,7 +21,6 @@ def download_mp3(query):
             'preferredquality': '192',
         }],
     }
-
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch1:{query}", download=True)
         title = info['entries'][0]['title']
@@ -41,16 +40,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("Error:", e)
 
 async def main():
-    job_queue = JobQueue(timezone=timezone("UTC"))
-    app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).job_queue(job_queue).build()
+    app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🎵 Bot activo...")
     await app.run_polling()
-
-if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
-
